@@ -1,5 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import {
+    DndContext,
+    DragOverlay,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    useDroppable,
+    useDraggable
+} from '@dnd-kit/core';
 import { Plus, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../api';
@@ -9,10 +17,42 @@ import TaskModal from '../components/TaskModal';
 import './BoardPage.css';
 
 const COLUMNS = [
-    { key: 'TODO', label: 'To Do' },
-    { key: 'IN_PROGRESS', label: 'In Progress' },
-    { key: 'DONE', label: 'Done' }
+    { key: 'TODO',        label: 'To Do',       cls: 'board-col-todo' },
+    { key: 'IN_PROGRESS', label: 'In Progress',  cls: 'board-col-progress' },
+    { key: 'DONE',        label: 'Done',         cls: 'board-col-done' },
 ];
+
+// Each column is a drop target; `isOver` highlights it while a card hovers above
+function DroppableColumn({ id, children }) {
+    const { setNodeRef, isOver } = useDroppable({ id });
+    return (
+        <div
+            ref={setNodeRef}
+            className={`board-column-body ${isOver ? 'dragging-over' : ''}`}
+        >
+            {children}
+        </div>
+    );
+}
+
+// Each task card is a draggable; it fades while being dragged (the DragOverlay shows the ghost)
+function DraggableCard({ task, assigneeEmail, onClick }) {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: task.taskId,
+        data: { task }
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            style={{ opacity: isDragging ? 0.35 : 1, cursor: isDragging ? 'grabbing' : 'grab' }}
+        >
+            <TaskCard task={task} assigneeEmail={assigneeEmail} onClick={onClick} />
+        </div>
+    );
+}
 
 export default function BoardPage() {
     const { activeWorkspaceId, activeWorkspace, loading: workspaceLoading } = useWorkspace();
@@ -22,6 +62,12 @@ export default function BoardPage() {
     const [search, setSearch] = useState('');
     const [priorityFilter, setPriorityFilter] = useState('ALL');
     const [modalState, setModalState] = useState(null); // { mode: 'create' | 'edit', task?, initialStatus? }
+    const [activeTask, setActiveTask] = useState(null); // task currently being dragged (for DragOverlay)
+
+    // 8px movement required before a drag starts — prevents accidental drags when clicking a card
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    );
 
     const memberMap = useMemo(
         () => Object.fromEntries(members.map(m => [m.userId, m.email])),
@@ -55,18 +101,24 @@ export default function BoardPage() {
 
     const tasksByStatus = (status) => filteredTasks.filter(t => t.status === status);
 
-    const handleDragEnd = async (result) => {
-        const { destination, source, draggableId } = result;
-        if (!destination || destination.droppableId === source.droppableId) return;
+    const handleDragStart = ({ active }) => {
+        setActiveTask(tasks.find(t => t.taskId === active.id) || null);
+    };
 
-        const task = tasks.find(t => t.taskId === draggableId);
+    const handleDragEnd = async ({ active, over }) => {
+        setActiveTask(null);
+        if (!over) return;
+
+        const task = tasks.find(t => t.taskId === active.id);
         if (!task) return;
 
-        const newStatus = destination.droppableId;
+        const newStatus = over.id; // droppable IDs are the column keys: TODO / IN_PROGRESS / DONE
+        if (task.status === newStatus) return;
+
         const previousTasks = tasks;
 
-        // Optimistic update — the card moves instantly, before the network call resolves
-        setTasks(prev => prev.map(t => t.taskId === draggableId ? { ...t, status: newStatus } : t));
+        // Optimistic update — card moves instantly; rolls back only if the API call fails
+        setTasks(prev => prev.map(t => t.taskId === active.id ? { ...t, status: newStatus } : t));
 
         try {
             await api.updateTask(activeWorkspaceId, task.taskId, {
@@ -78,7 +130,7 @@ export default function BoardPage() {
                 status: newStatus
             });
         } catch (err) {
-            setTasks(previousTasks); // roll back on failure
+            setTasks(previousTasks);
             toast.error(err.message);
         }
     };
@@ -101,32 +153,58 @@ export default function BoardPage() {
 
     return (
         <div className="board-page">
+            {/* Header */}
             <div className="board-header">
                 <div>
-                    <h1>{activeWorkspace?.name}</h1>
-                    {activeWorkspace?.description && <p className="board-subtitle">{activeWorkspace.description}</p>}
+                    <div className="board-breadcrumb">
+                        <span className="board-breadcrumb-label">Workspace</span>
+                        <span className="board-breadcrumb-sep">›</span>
+                        <h1 className="board-workspace-name">{activeWorkspace?.name}</h1>
+                    </div>
+                    {activeWorkspace?.description && (
+                        <p className="board-subtitle">{activeWorkspace.description}</p>
+                    )}
                 </div>
+
                 <div className="board-toolbar">
                     <div className="board-search">
-                        <Search size={15} />
-                        <input placeholder="Search tasks…" value={search} onChange={e => setSearch(e.target.value)} />
+                        <Search size={15} strokeWidth={1.5} />
+                        <input
+                            placeholder="Search tasks…"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
                     </div>
-                    <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
+                    <select
+                        className="board-filter-select"
+                        value={priorityFilter}
+                        onChange={e => setPriorityFilter(e.target.value)}
+                    >
                         <option value="ALL">All priorities</option>
                         <option value="LOW">Low</option>
                         <option value="MEDIUM">Medium</option>
                         <option value="HIGH">High</option>
                     </select>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => setModalState({ mode: 'create', initialStatus: 'TODO' })}
+                    >
+                        <Plus size={15} strokeWidth={1.5} /> New Task
+                    </button>
                 </div>
             </div>
 
             {loading ? (
                 <div className="board-loading">Loading tasks…</div>
             ) : (
-                <DragDropContext onDragEnd={handleDragEnd}>
+                <DndContext
+                    sensors={sensors}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                >
                     <div className="board-columns">
                         {COLUMNS.map(col => (
-                            <div className="board-column" key={col.key}>
+                            <div className={`board-column ${col.cls}`} key={col.key}>
                                 <div className="board-column-header">
                                     <span>{col.label}</span>
                                     <span className="board-column-count">{tasksByStatus(col.key).length}</span>
@@ -135,45 +213,39 @@ export default function BoardPage() {
                                         onClick={() => setModalState({ mode: 'create', initialStatus: col.key })}
                                         title={`Add task to ${col.label}`}
                                     >
-                                        <Plus size={16} />
+                                        <Plus size={16} strokeWidth={1.5} />
                                     </button>
                                 </div>
-                                <Droppable droppableId={col.key}>
-                                    {(provided, snapshot) => (
-                                        <div
-                                            ref={provided.innerRef}
-                                            {...provided.droppableProps}
-                                            className={`board-column-body ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
-                                        >
-                                            {tasksByStatus(col.key).map((task, index) => (
-                                                <Draggable draggableId={task.taskId} index={index} key={task.taskId}>
-                                                    {(provided, snapshot) => (
-                                                        <div
-                                                            ref={provided.innerRef}
-                                                            {...provided.draggableProps}
-                                                            {...provided.dragHandleProps}
-                                                            className={snapshot.isDragging ? 'dragging' : ''}
-                                                        >
-                                                            <TaskCard
-                                                                task={task}
-                                                                assigneeEmail={memberMap[task.assigneeId]}
-                                                                onClick={() => setModalState({ mode: 'edit', task })}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </Draggable>
-                                            ))}
-                                            {provided.placeholder}
-                                            {tasksByStatus(col.key).length === 0 && (
-                                                <div className="board-column-empty">No tasks</div>
-                                            )}
-                                        </div>
+                                <DroppableColumn id={col.key}>
+                                    {tasksByStatus(col.key).map(task => (
+                                        <DraggableCard
+                                            key={task.taskId}
+                                            task={task}
+                                            assigneeEmail={memberMap[task.assigneeId]}
+                                            onClick={() => setModalState({ mode: 'edit', task })}
+                                        />
+                                    ))}
+                                    {tasksByStatus(col.key).length === 0 && (
+                                        <div className="board-column-empty">No tasks</div>
                                     )}
-                                </Droppable>
+                                </DroppableColumn>
                             </div>
                         ))}
                     </div>
-                </DragDropContext>
+
+                    {/* DragOverlay renders in a body-level portal — immune to any overflow clipping */}
+                    <DragOverlay>
+                        {activeTask && (
+                            <div style={{ transform: 'rotate(2deg)', cursor: 'grabbing' }}>
+                                <TaskCard
+                                    task={activeTask}
+                                    assigneeEmail={memberMap[activeTask.assigneeId]}
+                                    onClick={() => {}}
+                                />
+                            </div>
+                        )}
+                    </DragOverlay>
+                </DndContext>
             )}
 
             {modalState && (

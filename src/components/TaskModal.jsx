@@ -3,6 +3,7 @@ import { X, Trash2, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import { api } from '../api';
+import './TaskModal.css';
 
 export default function TaskModal({ mode, task, initialStatus, workspaceId, members, onClose, onSaved }) {
     const isEdit = mode === 'edit';
@@ -92,20 +93,34 @@ export default function TaskModal({ mode, task, initialStatus, workspaceId, memb
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-panel" onClick={e => e.stopPropagation()}>
+                {/* Header */}
                 <div className="modal-header">
-                    <h2>{isEdit ? 'Task details' : 'New task'}</h2>
-                    <button className="btn btn-ghost" onClick={onClose}><X size={18} /></button>
+                    <h2>{isEdit ? 'Task Details' : 'New Task'}</h2>
+                    <button className="btn btn-ghost" onClick={onClose} style={{ padding: '4px 6px' }}>
+                        <X size={18} strokeWidth={1.5} />
+                    </button>
                 </div>
 
+                {/* Form */}
                 <form onSubmit={handleSubmit} className="modal-body">
                     <div className="field">
                         <label>Title</label>
-                        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" autoFocus />
+                        <input
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                            placeholder="Task title"
+                            autoFocus
+                        />
                     </div>
 
                     <div className="field">
                         <label>Description</label>
-                        <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="What needs to happen?" />
+                        <textarea
+                            rows={3}
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            placeholder="What needs to happen?"
+                        />
                     </div>
 
                     <div className="modal-field-row">
@@ -119,7 +134,11 @@ export default function TaskModal({ mode, task, initialStatus, workspaceId, memb
                         </div>
                         <div className="field">
                             <label>Due date</label>
-                            <input type="date" value={dueDate ? dueDate.slice(0, 10) : ''} onChange={e => setDueDate(e.target.value)} />
+                            <input
+                                type="date"
+                                value={dueDate ? dueDate.slice(0, 10) : ''}
+                                onChange={e => setDueDate(e.target.value)}
+                            />
                         </div>
                     </div>
 
@@ -136,7 +155,8 @@ export default function TaskModal({ mode, task, initialStatus, workspaceId, memb
                     <div className="modal-actions">
                         {isEdit && (
                             <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                                <Trash2 size={15} /> {confirmingDelete ? 'Click again to confirm' : 'Delete task'}
+                                <Trash2 size={14} strokeWidth={1.5} />
+                                {confirmingDelete ? 'Click again to confirm' : 'Delete task'}
                             </button>
                         )}
                         <button type="submit" className="btn btn-primary" disabled={saving}>
@@ -145,6 +165,7 @@ export default function TaskModal({ mode, task, initialStatus, workspaceId, memb
                     </div>
                 </form>
 
+                {/* Comments (edit mode only) */}
                 {isEdit && (
                     <div className="modal-comments">
                         <h3>Comments</h3>
@@ -152,14 +173,21 @@ export default function TaskModal({ mode, task, initialStatus, workspaceId, memb
                             <div className="modal-comments-loading">Loading comments…</div>
                         ) : (
                             <div className="modal-comments-list">
-                                {comments.length === 0 && <div className="modal-comments-empty">No comments yet — start the conversation.</div>}
+                                {comments.length === 0 && (
+                                    <div className="modal-comments-empty">No comments yet — start the conversation.</div>
+                                )}
                                 {comments.map(c => (
                                     <div className="comment" key={c.commentId}>
-                                        <div className="comment-meta">
-                                            <strong>{c.authorEmail || 'Unknown'}</strong>
-                                            <span>{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}</span>
+                                        <div className="comment-avatar">
+                                            {(c.authorEmail || '?')[0].toUpperCase()}
                                         </div>
-                                        <p>{c.text}</p>
+                                        <div className="comment-body">
+                                            <div className="comment-meta">
+                                                <strong>{c.authorEmail || 'Unknown'}</strong>
+                                                <span>{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}</span>
+                                            </div>
+                                            <p>{c.text}</p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -171,7 +199,7 @@ export default function TaskModal({ mode, task, initialStatus, workspaceId, memb
                                 onChange={e => setNewComment(e.target.value)}
                             />
                             <button type="submit" className="btn btn-primary" disabled={postingComment}>
-                                <Send size={15} />
+                                <Send size={14} strokeWidth={1.5} />
                             </button>
                         </form>
                     </div>

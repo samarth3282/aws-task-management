@@ -32,7 +32,7 @@ function WorkspaceSwitcher() {
         <div className="ws-switcher">
             <button className="ws-switcher-trigger" onClick={() => setOpen(o => !o)}>
                 <span className="ws-switcher-name">{active ? active.name : 'No workspace yet'}</span>
-                <ChevronDown size={16} />
+                <ChevronDown size={14} />
             </button>
             {open && (
                 <div className="ws-switcher-menu">
@@ -56,7 +56,7 @@ function WorkspaceSwitcher() {
                         </form>
                     ) : (
                         <button className="ws-switcher-item ws-switcher-add" onClick={() => setShowNewForm(true)}>
-                            <Plus size={14} /> New workspace
+                            <Plus size={13} /> New workspace
                         </button>
                     )}
                 </div>
@@ -66,34 +66,54 @@ function WorkspaceSwitcher() {
 }
 
 const NAV_ITEMS = [
-    { to: 'board', label: 'Board', icon: LayoutGrid },
+    { to: 'board',     label: 'Board',     icon: LayoutGrid },
     { to: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { to: 'files', label: 'Files', icon: Paperclip },
-    { to: 'members', label: 'Members', icon: Users }
+    { to: 'files',     label: 'Files',     icon: Paperclip },
+    { to: 'members',   label: 'Members',   icon: Users },
 ];
 
 function ShellInner({ signOut, user }) {
     return (
         <div className="shell">
             <aside className="shell-sidebar">
-                <div className="shell-logo">🗂️ TaskFlow</div>
+                {/* Logo */}
+                <div className="shell-logo">
+                    <div className="shell-logo-icon">TF</div>
+                    <div className="shell-logo-text">
+                        <span className="shell-logo-name">TaskFlow</span>
+                        <span className="shell-logo-sub">Workspace</span>
+                    </div>
+                </div>
+
+                {/* Workspace switcher */}
                 <WorkspaceSwitcher />
+
+                {/* Navigation */}
                 <nav className="shell-nav">
                     {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-                        <NavLink key={to} to={to} className={({ isActive }) => `shell-nav-link ${isActive ? 'active' : ''}`}>
-                            <Icon size={17} /> {label}
+                        <NavLink
+                            key={to}
+                            to={to}
+                            className={({ isActive }) => `shell-nav-link ${isActive ? 'active' : ''}`}
+                        >
+                            <Icon size={17} strokeWidth={1.5} /> {label}
                         </NavLink>
                     ))}
                 </nav>
+
+                {/* User footer */}
                 <div className="shell-user">
                     <span className="shell-user-email">{user.signInDetails?.loginId}</span>
                     <button className="btn btn-ghost" onClick={signOut} title="Sign out">
-                        <LogOut size={16} />
+                        <LogOut size={15} strokeWidth={1.5} />
                     </button>
                 </div>
             </aside>
+
             <main className="shell-main">
-                <Outlet />
+                <div className="shell-main-scroll">
+                    <Outlet />
+                </div>
             </main>
         </div>
     );
