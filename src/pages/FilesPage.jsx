@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload, Download, FileText } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { api } from '../api';
-import { useWorkspace } from '../context/WorkspaceContext';
+import { useToast } from '../hooks/useToast';
+import * as api from '../lib/api';
+import { useWorkspace } from '../hooks/useWorkspace';
+import { Skeleton } from '../components/ui/Skeleton.jsx';
+import { withViewTransition } from '../lib/transition.js';
 
 function formatSize(bytes) {
     if (bytes < 1024)            return `${bytes} B`;
@@ -11,45 +13,45 @@ function formatSize(bytes) {
 }
 
 export default function FilesPage() {
-    const { activeWorkspaceId } = useWorkspace();
+    const { active } = useWorkspace();
+    const { notify } = useToast();
     const [files, setFiles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
 
     const load = async () => {
-        if (!activeWorkspaceId) return;
+        if (!active?.workspaceId) return;
         setLoading(true);
         try {
-            const { files } = await api.listFiles(activeWorkspaceId);
-            setFiles(files);
+            const filesList = await api.getWorkspaceFiles(active.workspaceId);
+            setFiles(filesList);
         } catch (err) {
-            toast.error(err.message);
+            notify(err.message, "error");
         } finally {
-            setLoading(false);
+            withViewTransition(() => setLoading(false));
         }
     };
 
-    useEffect(() => { load(); }, [activeWorkspaceId]);
+    useEffect(() => { load(); }, [active?.workspaceId]);
 
     const handleFileChosen = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         setUploading(true);
         try {
-            const { uploadUrl } = await api.requestUploadUrl(activeWorkspaceId, file.name, file.type);
-            await api.uploadToS3(uploadUrl, file);
-            toast.success(`${file.name} uploaded`);
+            await api.uploadFile(active.workspaceId, file);
+            notify(`${file.name} uploaded`, "success");
             load();
         } catch (err) {
-            toast.error(err.message);
+            notify(err.message, "error");
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
-    if (!activeWorkspaceId) return <div className="empty-state"><h3>No workspace selected</h3></div>;
+    if (!active?.workspaceId) return <div className="empty-state"><h3>No workspace selected</h3></div>;
 
     return (
         <div>
@@ -63,7 +65,7 @@ export default function FilesPage() {
                 </div>
                 <div>
                     <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChosen} />
-                    <button className="btn btn-primary" disabled={uploading} onClick={() => fileInputRef.current.click()}>
+                    <button className="btn btn--amber" disabled={uploading} onClick={() => fileInputRef.current.click()}>
                         <Upload size={15} strokeWidth={1.5} />
                         {uploading ? 'Uploading…' : 'Upload file'}
                     </button>
@@ -79,7 +81,37 @@ export default function FilesPage() {
                 boxShadow: 'var(--shadow-card)',
             }}>
                 {loading ? (
-                    <div className="board-loading">Loading files…</div>
+                    <div>
+                        {/* Table header */}
+                        <div style={{
+                            display: 'grid', gridTemplateColumns: '1fr auto auto',
+                            padding: '10px 20px',
+                            borderBottom: '1px solid var(--color-border)',
+                            background: 'var(--color-surface-subtle)',
+                        }}>
+                            {['File', 'Size', ''].map((h, i) => (
+                                <span key={i} style={{
+                                    fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+                                    textTransform: 'uppercase', color: 'var(--color-on-surface-var)',
+                                }}>{h}</span>
+                            ))}
+                        </div>
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} style={{
+                                display: 'grid', gridTemplateColumns: '1fr auto auto',
+                                alignItems: 'center', gap: 'var(--space-4)',
+                                padding: '14px 20px',
+                                borderBottom: i < 4 ? '1px solid var(--color-border)' : 'none',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                    <Skeleton style={{ width: 20, height: 20, borderRadius: 4 }} />
+                                    <Skeleton style={{ width: 140, height: 14 }} />
+                                </div>
+                                <Skeleton style={{ width: 40, height: 14 }} />
+                                <Skeleton style={{ width: 80, height: 32, borderRadius: 6 }} />
+                            </div>
+                        ))}
+                    </div>
                 ) : files.length === 0 ? (
                     <div className="empty-state">
                         <FileText size={32} color="var(--color-on-surface-var)" strokeWidth={1.5} />
@@ -105,7 +137,7 @@ export default function FilesPage() {
 
                         {files.map((f, idx) => (
                             <div
-                                key={f.key}
+                                key={f.key || idx}
                                 style={{
                                     display: 'grid', gridTemplateColumns: '1fr auto auto',
                                     alignItems: 'center', gap: 'var(--space-4)',

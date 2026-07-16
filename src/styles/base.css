@@ -1,0 +1,253 @@
+/* ============================================================
+   TaskFlow — Design tokens
+   Deep ink-navy surface, warm amber signal, cool teal for done
+   states, paper-toned mockup cards. Fraunces for display voice,
+   Inter for body, IBM Plex Mono for structural/data labels.
+   ============================================================ */
+
+:root {
+  /* --- Ink surfaces (dark, blue-tinted, never pure black) --- */
+  --ink-950: #090b10;
+  --ink-925: #0d1017;
+  --ink-900: #12161f;
+  --ink-850: #171c27;
+  --ink-800: #1c2230;
+  --ink-700: #2a3140;
+  --ink-600: #3a4256;
+
+  /* --- Paper (used sparingly, inside product mockups only) --- */
+  --paper-100: #f4f4ef;
+  --paper-200: #e9e9e1;
+  --paper-ink: #21242b;
+
+  /* --- Signal colors, mapped to real board semantics --- */
+  --amber-400: #f0a63a;
+  --amber-300: #f6c374;
+  --amber-glow: rgba(240, 166, 58, 0.18);
+  
+  --accent-primary: var(--accent-primary);
+  --accent-glow: var(--accent-glow);
+
+  --teal-400: #49d3bd;
+  --teal-300: #86e3d3;
+  --teal-glow: rgba(73, 211, 189, 0.16);
+
+  --slate-400: #8891a3;
+  --red-400: #e8695f;
+
+  /* --- Text on ink --- */
+  --text-100: #f4f5f7;
+  --text-300: #c2c6d1;
+  --text-500: #8b909e;
+  --text-700: #5c6170;
+
+  /* --- Text on paper (inside mockups) --- */
+  --paper-text-900: #21242b;
+  --paper-text-600: #5b5f6b;
+
+  /* --- Type --- */
+  --font-display: "Fraunces", "Iowan Old Style", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+  /* --- Layout --- */
+  --container: 1220px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root.light {
+  --ink-950: #f8fafc;
+  --ink-925: #f1f5f9;
+  --ink-900: #e2e8f0;
+  --ink-850: #cbd5e1;
+  --ink-800: #94a3b8;
+  --ink-700: #64748b;
+  --ink-600: #475569;
+
+  --paper-100: #ffffff;
+  --paper-200: #f8fafc;
+  --paper-ink: #0f172a;
+
+  --text-100: #0f172a;
+  --text-300: #334155;
+  --text-500: #475569;
+  --text-700: #94a3b8;
+  
+  --paper-text-900: #0f172a;
+  --paper-text-600: #475569;
+}
+
+html.theme-transition::view-transition-group(root) {
+  animation: none;
+}
+html.theme-transition::view-transition-old(root),
+html.theme-transition::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: auto;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--ink-950);
+  color: var(--text-300);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+::selection {
+  background: var(--accent-glow);
+  color: var(--text-100);
+}
+
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 14px;
+  height: 1px;
+  background: var(--accent-primary);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Scrollbar (webkit) — subtle, matches ink palette */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-700);
+  border-radius: 8px;
+  border: 2px solid var(--ink-950);
+}
+
+/* ============================================================
+   Liquid Glass Surface
+   ============================================================ */
+.liquid-glass-surface {
+  background: linear-gradient(180deg, rgba(14, 14, 22, 0.18), rgba(14, 14, 22, 0.32));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -8px 20px rgba(255, 255, 255, 0.02),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+:root.light .liquid-glass-surface {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.7));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    inset 0 -8px 20px rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}

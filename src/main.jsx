@@ -1,23 +1,29 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { Amplify } from 'aws-amplify';
-import { Toaster } from 'react-hot-toast';
-import App from './App.jsx';
-import './index.css';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import "./lib/auth"; // configures Amplify as a side effect, before anything renders
+import "./styles/base.css";
+import "./styles/landing.css";
+import "./styles/auth.css";
+import "./styles/app.css";
+import { AuthProvider } from "./hooks/useAuth.jsx";
+import { ToastProvider } from "./hooks/useToast.jsx";
+import { ThemeProvider } from "./contexts/ThemeContext.jsx";
+import { AccentColorProvider } from "./contexts/AccentColorContext.jsx";
+import App from "./App.jsx";
 
-Amplify.configure({
-  Auth: {
-    Cognito: {
-      region: 'us-east-1',
-      userPoolId: import.meta.env.VITE_USER_POOL_ID,
-      userPoolClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID
-    }
-  }
-});
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <Toaster position="top-right" toastOptions={{ duration: 3500 }} />
-    <App />
-  </React.StrictMode>
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AccentColorProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </AuthProvider>
+        </AccentColorProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  </StrictMode>
 );
