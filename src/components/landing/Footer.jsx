@@ -13,7 +13,7 @@ export default function Footer() {
           <a href="#product">Product</a>
           <a href="#workflow">Workflow</a>
           <a href="#infrastructure">Infrastructure</a>
-          <a href="#pricing">Pricing</a>
+          {/* <a href="#pricing">Pricing</a> */}
         </nav>
 
         <p className="footer__meta">

@@ -9,7 +9,7 @@ const LINKS = [
   { href: "#product", label: "Product" },
   { href: "#workflow", label: "Workflow" },
   { href: "#infrastructure", label: "Infrastructure" },
-  { href: "#pricing", label: "Pricing" },
+  // { href: "#pricing", label: "Pricing" },
 ];
 
 export default function Nav() {
