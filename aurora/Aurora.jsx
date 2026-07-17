@@ -99,9 +99,9 @@ void main() {
   float intensity = 0.6 * height;
   
   float midPoint = 0.20;
-  float auroraAlpha = smoothstep(midPoint - uBlend * 0.5, midPoint + uBlend * 0.5, intensity);
+  float auroraAlpha = smoothstep(max(0.0, midPoint - uBlend * 0.5), midPoint + uBlend * 0.5, intensity);
   
-  vec3 auroraColor = intensity * rampColor;
+  vec3 auroraColor = rampColor;
   
   fragColor = vec4(auroraColor * auroraAlpha, auroraAlpha);
 }
@@ -195,6 +195,5 @@ export default function Aurora(props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amplitude]);
-
-  return <div ref={ctnDom} className="w-full h-full" />;
+  return <div ref={ctnDom} style={{ width: '100%', height: '100%' }} />;
 }
