@@ -9,9 +9,13 @@ export default function ThemeToggle() {
       className="btn btn--icon"
       style={{ borderRadius: '50%', padding: 10, background: 'var(--ink-900, rgba(0,0,0,0.85))', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
       onClick={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
+        let x = e.clientX;
+        let y = e.clientY;
+        if (!x && !y) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          x = rect.left + rect.width / 2;
+          y = rect.top + rect.height / 2;
+        }
         toggleTheme(x, y);
       }}
       aria-label="Toggle theme"

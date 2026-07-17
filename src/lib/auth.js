@@ -7,6 +7,8 @@ import {
   fetchAuthSession,
   getCurrentUser as amplifyGetCurrentUser,
   resendSignUpCode,
+  resetPassword as amplifyResetPassword,
+  confirmResetPassword as amplifyConfirmResetPassword,
 } from "aws-amplify/auth";
 import { AWS_REGION, USER_POOL_ID, USER_POOL_CLIENT_ID } from "../config";
 
@@ -57,4 +59,12 @@ export async function getToken() {
   const token = session.tokens?.idToken?.toString();
   if (!token) throw new Error("Not authenticated");
   return token;
+}
+
+export async function resetPassword(email) {
+  return amplifyResetPassword({ username: email });
+}
+
+export async function confirmResetPassword(email, code, newPassword) {
+  return amplifyConfirmResetPassword({ username: email, confirmationCode: code, newPassword });
 }

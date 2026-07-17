@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { PRODUCT_NAME } from "../config";
 import { useAuth } from "../hooks/useAuth.jsx";
 import * as auth from "../lib/auth";
@@ -98,6 +99,36 @@ export default function LoginPage() {
     }
   }
 
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      await auth.resetPassword(form.email);
+      setInfo(`We sent a password reset code to ${form.email}.`);
+      setMode("reset_confirm");
+    } catch (err) {
+      setError(readableAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleResetConfirm(e) {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      await auth.confirmResetPassword(form.email, form.code, form.password);
+      setInfo("Password reset successful. You can now log in with your new password.");
+      setMode("signin");
+    } catch (err) {
+      setError(readableAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="auth">
       <div className="auth__panel">
@@ -121,6 +152,12 @@ export default function LoginPage() {
                 onChange={set("password")}
                 autoComplete="current-password"
               />
+              <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: '16px' }}>
+                <button type="button" onClick={() => { setMode("forgot"); setError(""); setInfo(""); }} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: 13, cursor: 'pointer', padding: 0 }}>
+                  Forgot your password?
+                </button>
+              </div>
+              {info && <p style={{ color: 'var(--teal-400)', fontSize: 14, marginBottom: 16 }}>{info}</p>}
               {error && <p className="auth__error">{error}</p>}
               <button className="btn btn--amber btn--block" type="submit" disabled={busy}>
                 {busy ? "Signing in..." : "Log in"}
@@ -189,6 +226,59 @@ export default function LoginPage() {
             </p>
           </>
         )}
+
+        {mode === "forgot" && (
+          <>
+            <h1>Reset Password</h1>
+            <p className="auth__sub">Enter your email and we'll send you a reset code.</p>
+
+            <form className="auth__form" onSubmit={handleForgotPassword}>
+              <Field label="Email" type="email" required value={form.email} onChange={set("email")} autoComplete="email" />
+              {error && <p className="auth__error">{error}</p>}
+              <button className="btn btn--amber btn--block" type="submit" disabled={busy}>
+                {busy ? "Sending..." : "Send Reset Code"}
+              </button>
+            </form>
+
+            <p className="auth__switch">
+              Remembered your password?{" "}
+              <button type="button" onClick={() => { setMode("signin"); setError(""); }}>
+                Log in
+              </button>
+            </p>
+          </>
+        )}
+
+        {mode === "reset_confirm" && (
+          <>
+            <h1>Set New Password</h1>
+            <p className="auth__sub">{info || `Enter the code we sent to ${form.email}.`}</p>
+
+            <form className="auth__form" onSubmit={handleResetConfirm}>
+              <Field label="Confirmation code" required value={form.code} onChange={set("code")} autoComplete="one-time-code" />
+              <Field
+                label="New Password"
+                type="password"
+                required
+                value={form.password}
+                onChange={set("password")}
+                autoComplete="new-password"
+                hint="At least 8 characters, with a number and a symbol."
+              />
+              {error && <p className="auth__error">{error}</p>}
+              <button className="btn btn--amber btn--block" type="submit" disabled={busy}>
+                {busy ? "Resetting..." : "Reset Password"}
+              </button>
+            </form>
+
+            <p className="auth__switch">
+              Didn't get it?{" "}
+              <button type="button" onClick={handleForgotPassword}>
+                Resend code
+              </button>
+            </p>
+          </>
+        )}
       </div>
 
       <div className="auth__side" aria-hidden="true">
@@ -202,11 +292,48 @@ export default function LoginPage() {
   );
 }
 
-function Field({ label, hint, ...props }) {
+function Field({ label, hint, type, ...props }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
   return (
     <label className="field">
       <span>{label}</span>
-      <input {...props} />
+      <div style={{ position: 'relative' }}>
+        <input 
+          type={inputType} 
+          {...props} 
+          style={{ 
+            ...props.style, 
+            paddingRight: isPassword ? '40px' : undefined, 
+            width: '100%', 
+            boxSizing: 'border-box' 
+          }} 
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-500)',
+              display: 'flex',
+              padding: 0,
+            }}
+            title={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
       {hint && <small>{hint}</small>}
     </label>
   );
@@ -219,5 +346,7 @@ function readableAuthError(err) {
   if (name === "UserNotConfirmedException") return "Please confirm your email before logging in.";
   if (name === "CodeMismatchException") return "That code doesn't match. Check and try again.";
   if (name === "InvalidPasswordException") return "Password needs 8+ characters, a number, and a symbol.";
+  if (name === "LimitExceededException") return "Too many attempts. Please wait a while before trying again.";
+  if (name === "ExpiredCodeException") return "The code has expired. Please request a new one.";
   return err?.message || "Something went wrong. Try again.";
 }
