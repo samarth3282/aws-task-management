@@ -1,5 +1,5 @@
 import { API_URL } from "../config";
-import { getToken } from "./auth";
+import { getToken, verifySession } from "./auth";
 
 class ApiError extends Error {
   constructor(message, status) {
@@ -9,6 +9,14 @@ class ApiError extends Error {
 }
 
 async function request(path, { method = "GET", body } = {}) {
+  if (method !== "GET") {
+    const isValid = await verifySession();
+    if (!isValid) {
+      window.dispatchEvent(new Event("session_invalidated"));
+      throw new ApiError("Session invalid. You logged in on another device.", 401);
+    }
+  }
+
   const token = await getToken();
   const res = await fetch(`${API_URL}${path}`, {
     method,

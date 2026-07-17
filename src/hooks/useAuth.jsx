@@ -32,15 +32,38 @@ export function AuthProvider({ children }) {
     refresh();
   }, [refresh]);
 
+  const checkSessionSilent = useCallback(async () => {
+    if (!user) return;
+    const isValid = await verifySession();
+    if (!isValid) {
+      await authSignOut();
+      setUser(null);
+      alert("You have been signed out because you logged in on another device.");
+    }
+  }, [user]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
-        refresh();
+      if (document.visibilityState === 'visible') {
+        checkSessionSilent();
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [refresh, user]);
+    
+    // Check every 15 seconds in the background
+    const interval = setInterval(() => {
+      checkSessionSilent();
+    }, 15000);
+
+    const handleInvalidation = () => checkSessionSilent();
+    window.addEventListener("session_invalidated", handleInvalidation);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("session_invalidated", handleInvalidation);
+      clearInterval(interval);
+    };
+  }, [checkSessionSilent]);
 
   const signOut = useCallback(async () => {
     await authSignOut();
