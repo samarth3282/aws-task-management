@@ -9,6 +9,8 @@ import {
   resendSignUpCode,
   resetPassword as amplifyResetPassword,
   confirmResetPassword as amplifyConfirmResetPassword,
+  updateUserAttributes,
+  fetchUserAttributes,
 } from "aws-amplify/auth";
 import { AWS_REGION, USER_POOL_ID, USER_POOL_CLIENT_ID } from "../config";
 
@@ -39,7 +41,13 @@ export async function resendCode(email) {
 }
 
 export async function signIn(email, password) {
-  return amplifySignIn({ username: email, password });
+  const result = await amplifySignIn({ username: email, password });
+  if (result.isSignedIn) {
+    const sessionId = crypto.randomUUID();
+    await updateUserAttributes({ userAttributes: { profile: sessionId } });
+    localStorage.setItem("taskflow_session_id", sessionId);
+  }
+  return result;
 }
 
 export async function signOut() {
@@ -67,4 +75,17 @@ export async function resetPassword(email) {
 
 export async function confirmResetPassword(email, code, newPassword) {
   return amplifyConfirmResetPassword({ username: email, confirmationCode: code, newPassword });
+}
+
+export async function verifySession() {
+  try {
+    const attrs = await fetchUserAttributes();
+    const currentSessionId = localStorage.getItem("taskflow_session_id");
+    if (attrs.profile && attrs.profile !== currentSessionId) {
+      return false;
+    }
+    return true;
+  } catch {
+    return true;
+  }
 }
