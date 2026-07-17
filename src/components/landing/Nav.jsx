@@ -23,7 +23,7 @@ export default function Nav() {
   }, []);
 
   const headerRef = useRef(null);
-  useLiquidGlass(headerRef, scrolled, { scale: -90, border: 0.05, blur: 12 });
+  useLiquidGlass(headerRef, scrolled, { scale: -112, border: 0, blur: 3, saturate: 1.5 });
 
   return (
     <header ref={headerRef} className={`nav ${scrolled ? "nav--scrolled liquid-glass-surface" : ""}`}>

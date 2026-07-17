@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { gsap } from "../../lib/gsap";
 import LivingBoard from "./LivingBoard.jsx";
+import Aurora from "../../../aurora/Aurora.jsx";
 
 const STATS = [
   { label: "Median cycle time", value: "1.8 days", mono: "cycle_time" },
@@ -25,7 +26,9 @@ export default function Hero() {
 
   return (
     <section className="hero" ref={scope}>
-      <div className="hero__glow" aria-hidden="true" />
+      <div className="hero__glow" aria-hidden="true">
+        <Aurora colorStops={["#F0A63A", "#00E5FF", "#8B5CF6"]} blend={0.5} amplitude={2} />
+      </div>
       <div className="container hero__inner">
         <span className="eyebrow hero-in">Project OS for teams who ship</span>
 

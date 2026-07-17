@@ -17,8 +17,7 @@ export default function Footer() {
         </nav>
 
         <p className="footer__meta">
-          Built solo, end to end - Cognito, API Gateway, Lambda, DynamoDB, S3, EventBridge, SQS, SNS,
-          CloudFront, CloudWatch.
+          Built by <a href="http://samarth-patel.dev" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', fontWeight: '600' }}>samarth3282</a>
         </p>
       </div>
     </footer>
