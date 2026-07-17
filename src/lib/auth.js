@@ -44,8 +44,12 @@ export async function signIn(email, password) {
   const result = await amplifySignIn({ username: email, password });
   if (result.isSignedIn) {
     const sessionId = crypto.randomUUID();
-    await updateUserAttributes({ userAttributes: { profile: sessionId } });
-    localStorage.setItem("taskflow_session_id", sessionId);
+    try {
+      await updateUserAttributes({ userAttributes: { profile: sessionId } });
+      localStorage.setItem("taskflow_session_id", sessionId);
+    } catch (err) {
+      console.error("Single Device Login Error: Failed to write 'profile' attribute. Please check Cognito App Client permissions.", err);
+    }
   }
   return result;
 }
@@ -81,11 +85,15 @@ export async function verifySession() {
   try {
     const attrs = await fetchUserAttributes();
     const currentSessionId = localStorage.getItem("taskflow_session_id");
+    
+    console.log("Session Check -> Cloud Profile:", attrs.profile, "| Local ID:", currentSessionId);
+
     if (attrs.profile && attrs.profile !== currentSessionId) {
       return false;
     }
     return true;
-  } catch {
+  } catch (err) {
+    console.error("Failed to fetch user attributes", err);
     return true;
   }
 }
