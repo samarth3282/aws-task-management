@@ -82,11 +82,14 @@ export const inviteMember = (workspaceId, email) =>
 export const getWorkspaceFiles = (workspaceId) =>
   request(`/workspaces/${workspaceId}/files`).then((d) => d.files || []);
 
-export const getSignedUploadUrl = (workspaceId, fileName, fileType) =>
-  request(`/upload`, { method: "POST", body: { workspaceId, fileName, fileType } });
+export const getSignedUploadUrl = (workspaceId, fileName, fileType, fileSize) =>
+  request(`/upload`, { method: "POST", body: { workspaceId, fileName, fileType, fileSize } });
 
 export async function uploadFile(workspaceId, file) {
-  const { uploadUrl, key } = await getSignedUploadUrl(workspaceId, file.name, file.type);
+  if (file.size > 25 * 1024 * 1024) {
+    throw new Error("File size exceeds the 25MB limit.");
+  }
+  const { uploadUrl, key } = await getSignedUploadUrl(workspaceId, file.name, file.type, file.size);
   await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
   return key;
 }
