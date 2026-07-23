@@ -5,6 +5,7 @@ import { PRODUCT_NAME } from "../../config";
 import { useAuth } from "../../hooks/useAuth.jsx";
 import { useWorkspace } from "../../hooks/useWorkspace.jsx";
 import CreateWorkspaceModal from "./CreateWorkspaceModal.jsx";
+import * as api from "../../lib/api"; // Added API import for invites
 
 const NAV = [
   { to: "board", label: "Board", icon: LayoutGrid },
@@ -15,9 +16,26 @@ const NAV = [
 
 export default function Sidebar() {
   const { user, signOut } = useAuth();
-  const { workspaces, active, selectWorkspace } = useWorkspace();
+  const { workspaces, active, selectWorkspace, reload } = useWorkspace();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
+
+  // Separate workspaces based on status
+  const acceptedWorkspaces = workspaces.filter(w => w.status !== "PENDING");
+  const pendingWorkspaces = workspaces.filter(w => w.status === "PENDING");
+
+  const handleRespond = async (workspaceId, action) => {
+    setIsResponding(true);
+    try {
+      await api.respondToInvite(workspaceId, action);
+      await reload(); // refresh workspaces from backend
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsResponding(false);
+    }
+  };
 
   return (
     <aside className="sidebar">
@@ -34,7 +52,8 @@ export default function Sidebar() {
 
         {switcherOpen && (
           <div className="switcher__menu">
-            {workspaces.map((w) => (
+            {/* Accepted Workspaces */}
+            {acceptedWorkspaces.map((w) => (
               <button
                 key={w.workspaceId}
                 type="button"
@@ -47,6 +66,38 @@ export default function Sidebar() {
                 {w.name}
               </button>
             ))}
+
+            {/* Pending Invites */}
+            {pendingWorkspaces.length > 0 && (
+              <div style={{ padding: "8px 12px", fontSize: "11px", fontWeight: "600", color: "#666", textTransform: "uppercase", marginTop: "8px", borderTop: "1px solid #eee" }}>
+                Pending Invites
+              </div>
+            )}
+
+            {pendingWorkspaces.map((w) => (
+              <div key={w.workspaceId} style={{ padding: "8px 12px", fontSize: "13px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <strong>{w.name}</strong>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    disabled={isResponding}
+                    onClick={() => handleRespond(w.workspaceId, "ACCEPT")}
+                    style={{ flex: 1, padding: "4px", background: "#0066cc", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    disabled={isResponding}
+                    onClick={() => handleRespond(w.workspaceId, "REJECT")}
+                    style={{ flex: 1, padding: "4px", background: "#eee", color: "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ marginTop: "4px", borderTop: "1px solid #eee" }} />
+
             <button
               type="button"
               className="switcher__item switcher__item--new"

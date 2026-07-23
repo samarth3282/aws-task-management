@@ -102,4 +102,10 @@ export async function uploadFile(workspaceId, file) {
   return key;
 }
 
+export const respondToInvite = (workspaceId, action) =>
+  request(`/workspaces/${workspaceId}/respond-invite`, {
+    method: "POST",
+    body: { action },
+  });
+
 export { ApiError };
