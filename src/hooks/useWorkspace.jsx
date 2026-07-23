@@ -19,13 +19,13 @@ export function WorkspaceProvider({ children }) {
       const list = await api.listWorkspaces();
       setWorkspaces(list);
 
-      const remembered = window.localStorage.getItem(LAST_WORKSPACE_KEY);
-      const stillExists = list.some((w) => w.workspaceId === remembered);
+      const acceptedList = list.filter((w) => w.status !== "PENDING");
+      const stillExists = acceptedList.some((w) => w.workspaceId === remembered);
 
       setActiveId((current) => {
-        if (current && list.some((w) => w.workspaceId === current)) return current;
+        if (current && acceptedList.some((w) => w.workspaceId === current)) return current;
         if (stillExists) return remembered;
-        return list[0]?.workspaceId ?? null;
+        return acceptedList[0]?.workspaceId ?? null;
       });
     } catch (err) {
       setError(err.message || "Couldn't load your workspaces.");

@@ -11,6 +11,8 @@ export default function AppShell() {
   const { loading, workspaces, error } = useWorkspace();
   const [createOpen, setCreateOpen] = useState(false);
 
+  const acceptedWorkspaces = workspaces.filter(w => w.status !== "PENDING");
+
   return (
     <div className="app-shell">
       <Sidebar />
@@ -42,7 +44,7 @@ export default function AppShell() {
           </div>
         )}
 
-        {!loading && !error && workspaces.length === 0 && (
+        {!loading && !error && acceptedWorkspaces.length === 0 && (
           <div className="app-main__center app-main__empty">
             <span className="eyebrow">No workspace yet</span>
             <h2>Create your first workspace</h2>
@@ -53,7 +55,7 @@ export default function AppShell() {
           </div>
         )}
 
-        {!loading && !error && workspaces.length > 0 && <Outlet />}
+        {!loading && !error && acceptedWorkspaces.length > 0 && <Outlet />}
       </main>
 
       <CreateWorkspaceModal open={createOpen} onClose={() => setCreateOpen(false)} />
