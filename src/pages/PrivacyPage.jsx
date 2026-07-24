@@ -17,9 +17,9 @@ export default function PrivacyPage() {
         </Link>
         <h1 style={{ fontSize: '48px', letterSpacing: '-0.02em', marginBottom: '16px' }}>Privacy Policy</h1>
         <p style={{ color: 'var(--text-400)', marginBottom: '48px' }}>Last updated: {new Date().toLocaleDateString()}</p>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', color: 'var(--text-300)', lineHeight: '1.7', fontSize: '16px' }}>
-          
+
           <section>
             <p>At {PRODUCT_NAME}, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our task management platform.</p>
           </section>
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 style={{ fontSize: '24px', color: 'var(--text-100)', marginBottom: '16px' }}>5. Contact Us</h2>
-            <p>If you have questions or comments about this Privacy Policy, please contact us at support@{window.location.hostname.replace('www.', '')}.</p>
+            <p>If you have questions or comments about this Privacy Policy, please contact us at samarth@samarth-patel.dev</p>
           </section>
 
         </div>
