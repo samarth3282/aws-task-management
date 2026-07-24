@@ -82,15 +82,15 @@ export default function CreateTaskModal({ open, onClose, workspaceId, defaultSta
           </label>
 
           <label className="field">
-            <span>Due date</span>
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <span>Due date *</span>
+            <input type="date" required value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </label>
         </div>
 
         <label className="field">
-          <span>Assignee</span>
-          <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
-            <option value="">Unassigned</option>
+          <span>Assignee *</span>
+          <select required value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
+            <option value="" disabled>Select assignee</option>
             {members?.map((m) => (
               <option key={m.userId} value={m.userId}>
                 {m.name || m.email}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Upload, Download, FileText, Trash2 } from 'lucide-react';
+import { Upload, Download, FileText, Trash2, Eye } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast';
 import * as api from '../lib/api';
@@ -25,6 +25,7 @@ export default function FilesPage() {
     const [uploading, setUploading] = useState(false);
     const [fileToDelete, setFileToDelete] = useState(null);
     const [deletingFile, setDeletingFile] = useState(false);
+    const [downloadingFile, setDownloadingFile] = useState(null);
     const fileInputRef = useRef(null);
 
     const load = async () => {
@@ -72,6 +73,29 @@ export default function FilesPage() {
             setDeletingFile(false);
         }
     };
+
+    const handleDownloadFile = async (f, e) => {
+        e.preventDefault();
+        setDownloadingFile(f.key);
+        try {
+            const response = await fetch(f.downloadUrl);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = f.fileName || "download";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error("Programmatic download failed, falling back", error);
+            window.open(f.downloadUrl, '_blank');
+        } finally {
+            setDownloadingFile(null);
+        }
+    };
+
 
     if (!active?.workspaceId) return <div className="empty-state"><h3>No workspace selected</h3></div>;
 
@@ -177,11 +201,14 @@ export default function FilesPage() {
                                 </span>
                                 {/* Download and Delete */}
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <a href={f.downloadUrl} className="btn btn-secondary" download style={{ padding: '6px 12px' }}>
-                                        <Download size={14} strokeWidth={1.5} /> Download
+                                    <a href={f.downloadUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '6px 12px' }}>
+                                        <Eye size={14} strokeWidth={1.5} /> View
                                     </a>
+                                    <button onClick={(e) => handleDownloadFile(f, e)} className="btn btn-secondary" style={{ padding: '6px 12px' }} disabled={downloadingFile === f.key}>
+                                        <Download size={14} strokeWidth={1.5} /> {downloadingFile === f.key ? "Downloading..." : "Download"}
+                                    </button>
                                     {isOwner && (
-                                        <button className="btn" style={{ padding: '6px', color: '#dc2626' }} onClick={() => setFileToDelete(f)} title="Delete file">
+                                        <button className="btn" style={{ padding: '0', color: '#dc2626', borderRadius: '50%', width: '32px', height: '32px', minHeight: '32px' }} onClick={() => setFileToDelete(f)} title="Delete file">
                                             <Trash2 size={16} strokeWidth={1.5} />
                                         </button>
                                     )}

@@ -1,6 +1,10 @@
-import React from "react";
+import React, { useId } from "react";
 
 export default function TaskflowLogo({ className = "", style = {} }) {
+  const idPrefix = useId().replace(/:/g, "");
+  const topGradId = `tf-top-${idPrefix}`;
+  const stemGradId = `tf-stem-${idPrefix}`;
+
   return (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
@@ -9,12 +13,12 @@ export default function TaskflowLogo({ className = "", style = {} }) {
       style={{ width: '28px', height: '28px', display: 'block', ...style }}
     >
       <defs>
-        <linearGradient id="tf-topGradient" x1="0%" y1="10%" x2="100%" y2="0%">
+        <linearGradient id={topGradId} x1="0%" y1="10%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="var(--accent-primary)" />
           <stop offset="100%" stopColor="var(--teal-400)" />
         </linearGradient>
 
-        <linearGradient id="tf-stemGradient" x1="90%" y1="0%" x2="10%" y2="100%">
+        <linearGradient id={stemGradId} x1="90%" y1="0%" x2="10%" y2="100%">
           <stop offset="0%" stopColor="var(--ink-900)" />
           <stop offset="100%" stopColor="var(--accent-primary)" />
         </linearGradient>
@@ -28,7 +32,7 @@ export default function TaskflowLogo({ className = "", style = {} }) {
                L 280 552 
                C 280 607, 390 607, 390 552 
                L 490 292 Z" 
-            fill="url(#tf-stemGradient)" />
+            fill={`url(#${stemGradId})`} />
 
       {/* Top Bar (Foreground) */}
       <path d="M 300 192 
@@ -36,7 +40,7 @@ export default function TaskflowLogo({ className = "", style = {} }) {
                C 635 192, 555 302, 500 302 
                L 220 302 
                C 165 302, 245 192, 300 192 Z" 
-            fill="url(#tf-topGradient)" />
+            fill={`url(#${topGradId})`} />
     </svg>
   );
 }

@@ -34,12 +34,23 @@ export default function KanbanBoard({ workspaceId, tasks, setTasks, onOpenTask, 
     const newStatus = over.id;
     if (!task || task.status === newStatus) return;
 
+    const oldStatus = task.status;
+    const isValidTransition = 
+      (oldStatus === "TODO" && newStatus === "IN_PROGRESS") ||
+      (oldStatus === "IN_PROGRESS" && newStatus === "DONE");
+
+    if (!isValidTransition) {
+      notify(`Tasks can only move from TODO to IN PROGRESS, and from IN PROGRESS to DONE.`, "error");
+      return;
+    }
+
     const previous = tasks;
     const updated = { ...task, status: newStatus };
     setTasks((ts) => ts.map((t) => (t.taskId === task.taskId ? updated : t)));
 
     try {
       await api.updateTask(workspaceId, task.taskId, updated);
+      notify(`Task moved from ${task.status.replace("_", " ")} to ${newStatus.replace("_", " ")}`, "success");
     } catch (err) {
       setTasks(previous);
       notify(err.message || "Couldn't move that task - reverted.", "error");

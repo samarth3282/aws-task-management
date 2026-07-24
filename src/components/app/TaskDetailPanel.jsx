@@ -58,6 +58,12 @@ export default function TaskDetailPanel({ task, workspaceId, members, onClose, o
   }
 
   async function handleSave() {
+    if (!draft.dueDate) {
+      return notify("Due date is required.", "error");
+    }
+    if (!draft.assigneeId) {
+      return notify("Assignee is required.", "error");
+    }
     setSaving(true);
     try {
       await api.updateTask(workspaceId, task.taskId, draft);
@@ -187,14 +193,14 @@ export default function TaskDetailPanel({ task, workspaceId, members, onClose, o
               </label>
 
               <label className="field">
-                <span>Due date</span>
-                <input type="date" value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""} onChange={(e) => update("dueDate", e.target.value)} />
+                <span>Due date *</span>
+                <input type="date" required value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""} onChange={(e) => update("dueDate", e.target.value)} />
               </label>
 
               <label className="field">
-                <span>Assignee</span>
-                <select value={draft.assigneeId || ""} onChange={(e) => update("assigneeId", e.target.value || null)}>
-                  <option value="">Unassigned</option>
+                <span>Assignee *</span>
+                <select required value={draft.assigneeId || ""} onChange={(e) => update("assigneeId", e.target.value || null)}>
+                  <option value="" disabled>Select assignee</option>
                   {members?.map((m) => (
                     <option key={m.userId} value={m.userId}>
                       {m.name || m.email}

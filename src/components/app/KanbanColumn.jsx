@@ -27,9 +27,11 @@ export default function KanbanColumn({ status, tasks, onOpenTask, onAddTask, mem
         {tasks.length === 0 && <p className="kanban-col__empty">Nothing here yet</p>}
       </div>
 
-      <button type="button" className="kanban-col__add" onClick={() => onAddTask(status)}>
-        <Plus size={14} /> Add task
-      </button>
+      {status === "TODO" && (
+        <button type="button" className="kanban-col__add" onClick={() => onAddTask(status)}>
+          <Plus size={14} /> Add task
+        </button>
+      )}
     </div>
   );
 }

@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const { notify } = useToast();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [isResponding, setIsResponding] = useState(false);
+  const [respondingTo, setRespondingTo] = useState(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deletingWorkspace, setDeletingWorkspace] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -35,14 +35,14 @@ export default function Sidebar({ isOpen, onClose }) {
   const pendingWorkspaces = workspaces.filter(w => w.status === "PENDING");
 
   const handleRespond = async (workspaceId, action) => {
-    setIsResponding(true);
+    setRespondingTo({ id: workspaceId, action });
     try {
       await api.respondToInvite(workspaceId, action);
       await reload(); // refresh workspaces from backend
     } catch (err) {
       notify(err.message || "Something went wrong.", "error");
     } finally {
-      setIsResponding(false);
+      setRespondingTo(null);
     }
   };
 
@@ -113,18 +113,18 @@ export default function Sidebar({ isOpen, onClose }) {
                 <strong>{w.name}</strong>
                 <div style={{ display: "flex", gap: "6px" }}>
                   <button
-                    disabled={isResponding}
+                    disabled={!!respondingTo}
                     onClick={() => handleRespond(w.workspaceId, "ACCEPT")}
                     style={{ flex: 1, padding: "4px", background: "#0066cc", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
                   >
-                    Accept
+                    {respondingTo?.id === w.workspaceId && respondingTo?.action === "ACCEPT" ? "..." : "Accept"}
                   </button>
                   <button
-                    disabled={isResponding}
+                    disabled={!!respondingTo}
                     onClick={() => handleRespond(w.workspaceId, "REJECT")}
                     style={{ flex: 1, padding: "4px", background: "#eee", color: "#333", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
                   >
-                    Reject
+                    {respondingTo?.id === w.workspaceId && respondingTo?.action === "REJECT" ? "..." : "Reject"}
                   </button>
                 </div>
               </div>
