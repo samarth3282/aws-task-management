@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { PRODUCT_NAME } from "../../config";
 import TaskflowLogo from "../ui/TaskflowLogo.jsx";
 
@@ -11,10 +12,11 @@ export default function Footer() {
         </div>
 
         <nav className="footer__links" aria-label="Footer">
-          <a href="#product">Product</a>
-          <a href="#workflow">Workflow</a>
-          <a href="#infrastructure">Infrastructure</a>
-          {/* <a href="#pricing">Pricing</a> */}
+          <a href="/#product">Product</a>
+          <a href="/#workflow">Workflow</a>
+          <a href="/#infrastructure">Infrastructure</a>
+          <Link to="/terms">Terms</Link>
+          <Link to="/privacy">Privacy</Link>
         </nav>
 
         <p className="footer__meta">

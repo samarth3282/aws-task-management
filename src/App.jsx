@@ -5,6 +5,8 @@ import { Skeleton } from "./components/ui/Skeleton.jsx";
 
 import LandingPage from "./pages/LandingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import TermsPage from "./pages/TermsPage.jsx";
+import PrivacyPage from "./pages/PrivacyPage.jsx";
 import AppShell from "./pages/AppShell.jsx";
 import BoardPage from "./pages/BoardPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
@@ -61,6 +63,8 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/login" element={<LoginPage />} />
 
         <Route
