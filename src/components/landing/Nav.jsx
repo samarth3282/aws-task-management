@@ -1,36 +1,50 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { useLiquidGlass } from "../../hooks/useLiquidGlass.jsx";
 import { PRODUCT_NAME } from "../../config";
 import ThemeToggle from "../ui/ThemeToggle.jsx";
 import AccentColorPicker from "../ui/AccentColorPicker.jsx";
+import TaskflowLogo from "../ui/TaskflowLogo.jsx";
+import { useLiquidGlass } from "../../hooks/useLiquidGlass.jsx";
 
 const LINKS = [
   { href: "#product", label: "Product" },
   { href: "#workflow", label: "Workflow" },
   { href: "#infrastructure", label: "Infrastructure" },
-  // { href: "#pricing", label: "Pricing" },
 ];
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const navInnerRef = useRef(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    let lastScrollY = window.scrollY;
+    const onScroll = () => {
+      const currentScrollY = window.scrollY;
+      setScrolled(currentScrollY > 2);
+      lastScrollY = currentScrollY;
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const headerRef = useRef(null);
-  useLiquidGlass(headerRef, scrolled, { scale: -112, border: 0, blur: 3, saturate: 1.5 });
+  useLiquidGlass(navInnerRef, scrolled, { scale: -112, border: 0, blur: 3, saturate: 1.5 });
 
   return (
-    <header ref={headerRef} className={`nav ${scrolled ? "nav--scrolled liquid-glass-surface" : ""}`}>
-      <div className="container nav__inner">
-        <Link to="/" className="nav__logo">
-          <span className="nav__logo-mark" aria-hidden="true" />
-          {PRODUCT_NAME}
+    <header className={`nav ${scrolled ? "is-scrolled" : ""}`}>
+      <div ref={navInnerRef} className={`nav__inner ${scrolled ? "liquid-glass-surface" : ""}`}>
+        <Link 
+          to="/" 
+          className="nav__logo"
+          onClick={(e) => {
+            if (window.__minimizedWindow) {
+              e.preventDefault();
+              window.dispatchEvent(new CustomEvent('restore-mac-window'));
+            }
+          }}
+        >
+          <TaskflowLogo className="nav__logo-mark" aria-hidden="true" />
+          <span className="nav__logo-text">{PRODUCT_NAME}</span>
         </Link>
 
         <nav className="nav__links" aria-label="Page sections">

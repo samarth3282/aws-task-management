@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
-import { LayoutGrid, BarChart3, Users, ChevronDown, Plus, LogOut, FileText } from "lucide-react";
+import { NavLink, useNavigate, useLocation, Link } from "react-router-dom";
+import { LayoutGrid, BarChart3, Users, ChevronDown, Plus, LogOut, FileText, Trash2 } from "lucide-react";
 import { PRODUCT_NAME } from "../../config";
 import { useAuth } from "../../hooks/useAuth.jsx";
 import { useWorkspace } from "../../hooks/useWorkspace.jsx";
+import { useToast } from "../../hooks/useToast.jsx";
 import CreateWorkspaceModal from "./CreateWorkspaceModal.jsx";
-import * as api from "../../lib/api"; // Added API import for invites
+import ConfirmDialog from "./ConfirmDialog.jsx";
+import UserProfileModal from "./UserProfileModal.jsx";
+import ThemeToggle from "../ui/ThemeToggle.jsx";
+import TaskflowLogo from "../ui/TaskflowLogo.jsx";
+import * as api from "../../lib/api";
 
 const NAV = [
   { to: "board", label: "Board", icon: LayoutGrid },
@@ -14,12 +19,16 @@ const NAV = [
   { to: "members", label: "Members", icon: Users },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { user, signOut } = useAuth();
   const { workspaces, active, selectWorkspace, reload } = useWorkspace();
+  const { notify } = useToast();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deletingWorkspace, setDeletingWorkspace] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Separate workspaces based on status
   const acceptedWorkspaces = workspaces.filter(w => w.status !== "PENDING");
@@ -31,20 +40,45 @@ export default function Sidebar() {
       await api.respondToInvite(workspaceId, action);
       await reload(); // refresh workspaces from backend
     } catch (err) {
-      alert(err.message);
+      notify(err.message || "Something went wrong.", "error");
     } finally {
       setIsResponding(false);
     }
   };
 
-  return (
-    <aside className="sidebar">
-      <div className="sidebar__logo">
-        <span className="nav__logo-mark" aria-hidden="true" />
-        {PRODUCT_NAME}
-      </div>
+  const handleDeleteWorkspace = async () => {
+    if (!active) return;
+    setDeletingWorkspace(true);
+    try {
+      await api.deleteWorkspace(active.workspaceId);
+      notify(`Workspace deleted.`, "success");
+      await reload(); // refresh workspaces, active will change or become null
+      setConfirmDeleteOpen(false);
+    } catch (err) {
+      notify(err.message || "Could not delete workspace.", "error");
+    } finally {
+      setDeletingWorkspace(false);
+    }
+  };
 
-      <div className="switcher">
+  const isOwner = active?.ownerId === (user?.userId || user?.username);
+
+  return (
+    <>
+      {isOpen && (
+        <div 
+          className="sidebar-overlay" 
+          onClick={onClose} 
+          aria-hidden="true" 
+        />
+      )}
+      <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
+        <div className="sidebar__logo">
+          <TaskflowLogo className="nav__logo-mark" aria-hidden="true" />
+          {PRODUCT_NAME}
+        </div>
+
+        <div className="switcher">
         <button type="button" className="switcher__trigger" onClick={() => setSwitcherOpen((o) => !o)}>
           <span className="switcher__name">{active?.name || "Select workspace"}</span>
           <ChevronDown size={15} />
@@ -118,6 +152,9 @@ export default function Sidebar() {
             key={item.to}
             to={item.to}
             className={({ isActive }) => `sidebar__link ${isActive ? "sidebar__link--active" : ""}`}
+            onClick={() => {
+              if (window.innerWidth <= 860) onClose?.();
+            }}
           >
             <item.icon size={16} />
             {item.label}
@@ -126,18 +163,61 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar__footer">
-        <div className="sidebar__user">
-          <span className="task-card__avatar sidebar__avatar">
-            {(user?.signInDetails?.loginId || user?.username || "U")[0]?.toUpperCase()}
-          </span>
-          <span className="sidebar__email">{user?.signInDetails?.loginId || user?.username}</span>
+        {isOwner && (
+          <button 
+            type="button" 
+            className="sidebar__signout" 
+            onClick={() => setConfirmDeleteOpen(true)} 
+            title="Delete Workspace"
+            style={{ color: 'var(--red-400, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '8px', borderRadius: '4px' }}
+          >
+            <Trash2 size={15} /> <span style={{ fontSize: '13px' }}>Delete Workspace</span>
+          </button>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <button 
+            type="button" 
+            className="sidebar__user" 
+            style={{ 
+              background: 'transparent', border: 'none', textAlign: 'left', padding: '4px', 
+              cursor: 'pointer', flex: 1, borderRadius: '6px', 
+              transition: 'background 0.2s', 
+              ':hover': { background: 'rgba(255,255,255,0.05)' } 
+            }}
+            onClick={() => setProfileOpen(true)}
+            title="Edit Profile"
+          >
+            {user?.picture ? (
+              <img src={user.picture} alt="Profile" className="task-card__avatar sidebar__avatar" style={{ border: 'none', objectFit: 'cover' }} />
+            ) : (
+              <span className="task-card__avatar sidebar__avatar">
+                {(user?.name || user?.signInDetails?.loginId || user?.username || "U")[0]?.toUpperCase()}
+              </span>
+            )}
+            <span className="sidebar__email" style={{ marginLeft: '8px' }}>
+              {user?.name || user?.signInDetails?.loginId || user?.username}
+            </span>
+          </button>
+          <button type="button" className="sidebar__signout" onClick={signOut} aria-label="Sign out">
+            <LogOut size={15} />
+          </button>
         </div>
-        <button type="button" className="sidebar__signout" onClick={signOut} aria-label="Sign out">
-          <LogOut size={15} />
-        </button>
       </div>
 
       <CreateWorkspaceModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleDeleteWorkspace}
+        title="Delete Workspace?"
+        body={`This will completely delete the workspace "${active?.name}" and kick out all members. It cannot be recovered.`}
+        confirmLabel="Delete Workspace"
+        busy={deletingWorkspace}
+        requireMatch="delete"
+      />
+      <UserProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </aside>
+    </>
   );
 }

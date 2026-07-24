@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useLiquidGlass } from "../../hooks/useLiquidGlass.jsx";
 
@@ -11,11 +12,11 @@ export default function Modal({ open, onClose, title, children, width = 440 }) {
   }, [open, onClose]);
 
   const modalRef = useRef(null);
-  useLiquidGlass(modalRef, open, { scale: -90, border: 0.05, blur: 12 });
+  useLiquidGlass(modalRef, open, { scale: -30, chroma: 2, border: 0.02, blur: 16 });
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={modalRef} className="modal liquid-glass-surface" style={{ maxWidth: width }} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal__head">
@@ -26,6 +27,7 @@ export default function Modal({ open, onClose, title, children, width = 440 }) {
         </div>
         <div className="modal__body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

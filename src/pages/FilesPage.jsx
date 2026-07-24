@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Upload, Download, FileText } from 'lucide-react';
+import { Upload, Download, FileText, Trash2 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth.jsx';
 import { useToast } from '../hooks/useToast';
 import * as api from '../lib/api';
 import { useWorkspace } from '../hooks/useWorkspace';
 import { Skeleton } from '../components/ui/Skeleton.jsx';
 import { withViewTransition } from '../lib/transition.js';
+import ConfirmDialog from '../components/app/ConfirmDialog.jsx';
 
 function formatSize(bytes) {
     if (bytes < 1024)            return `${bytes} B`;
@@ -14,10 +16,15 @@ function formatSize(bytes) {
 
 export default function FilesPage() {
     const { active } = useWorkspace();
+    const { user } = useAuth();
+    
+    const isOwner = active?.ownerId === (user?.userId || user?.username);
     const { notify } = useToast();
     const [files, setFiles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [fileToDelete, setFileToDelete] = useState(null);
+    const [deletingFile, setDeletingFile] = useState(false);
     const fileInputRef = useRef(null);
 
     const load = async () => {
@@ -48,6 +55,21 @@ export default function FilesPage() {
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const confirmDeleteFile = async () => {
+        if (!fileToDelete) return;
+        setDeletingFile(true);
+        try {
+            await api.deleteWorkspaceFile(active.workspaceId, fileToDelete.key);
+            notify(`${fileToDelete.fileName} deleted`, "success");
+            load();
+            setFileToDelete(null);
+        } catch (err) {
+            notify(err.message, "error");
+        } finally {
+            setDeletingFile(false);
         }
     };
 
@@ -121,12 +143,7 @@ export default function FilesPage() {
                 ) : (
                     <div>
                         {/* Table header */}
-                        <div style={{
-                            display: 'grid', gridTemplateColumns: '1fr auto auto',
-                            padding: '10px 20px',
-                            borderBottom: '1px solid var(--color-border)',
-                            background: 'var(--color-surface-subtle)',
-                        }}>
+                        <div className="files-grid-header">
                             {['File', 'Size', ''].map((h, i) => (
                                 <span key={i} style={{
                                     fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
@@ -138,10 +155,8 @@ export default function FilesPage() {
                         {files.map((f, idx) => (
                             <div
                                 key={f.key || idx}
+                                className="files-grid-row"
                                 style={{
-                                    display: 'grid', gridTemplateColumns: '1fr auto auto',
-                                    alignItems: 'center', gap: 'var(--space-4)',
-                                    padding: '14px 20px',
                                     borderBottom: idx < files.length - 1 ? '1px solid var(--color-border)' : 'none',
                                     transition: 'background 0.12s',
                                 }}
@@ -160,15 +175,33 @@ export default function FilesPage() {
                                 <span style={{ fontSize: 13, color: 'var(--color-on-surface-var)', whiteSpace: 'nowrap' }}>
                                     {formatSize(f.size)}
                                 </span>
-                                {/* Download */}
-                                <a href={f.downloadUrl} className="btn btn-secondary" download style={{ padding: '6px 12px' }}>
-                                    <Download size={14} strokeWidth={1.5} /> Download
-                                </a>
+                                {/* Download and Delete */}
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <a href={f.downloadUrl} className="btn btn-secondary" download style={{ padding: '6px 12px' }}>
+                                        <Download size={14} strokeWidth={1.5} /> Download
+                                    </a>
+                                    {isOwner && (
+                                        <button className="btn" style={{ padding: '6px', color: '#dc2626' }} onClick={() => setFileToDelete(f)} title="Delete file">
+                                            <Trash2 size={16} strokeWidth={1.5} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            <ConfirmDialog
+                open={!!fileToDelete}
+                onClose={() => setFileToDelete(null)}
+                onConfirm={confirmDeleteFile}
+                title="Delete File?"
+                body={`Are you sure you want to permanently delete "${fileToDelete?.fileName}"? It cannot be recovered.`}
+                confirmLabel="Delete File"
+                busy={deletingFile}
+                requireMatch="delete"
+            />
         </div>
     );
 }

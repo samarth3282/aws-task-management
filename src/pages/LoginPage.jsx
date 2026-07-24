@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, UploadCloud } from "lucide-react";
 import { PRODUCT_NAME } from "../config";
 import { useAuth } from "../hooks/useAuth.jsx";
 import * as auth from "../lib/auth";
+import * as api from "../lib/api";
+import TaskflowLogo from "../components/ui/TaskflowLogo.jsx";
 import "../styles/auth.css";
 
 export default function LoginPage() {
@@ -11,17 +13,17 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { user, refresh } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      navigate("/app", { replace: true });
-    }
-  }, [user, navigate]);
-
   const [mode, setMode] = useState(params.get("intent") === "signup" ? "signup" : "signin");
   const [form, setForm] = useState({ name: "", email: "", password: "", code: "" });
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (user && mode !== "setup_profile") {
+      navigate("/app", { replace: true });
+    }
+  }, [user, navigate, mode]);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -81,7 +83,8 @@ export default function LoginPage() {
       await auth.confirmSignUp(form.email, form.code);
       await auth.signIn(form.email, form.password);
       await refresh();
-      navigate("/app");
+      setInfo("");
+      setMode("setup_profile");
     } catch (err) {
       setError(readableAuthError(err));
     } finally {
@@ -129,12 +132,45 @@ export default function LoginPage() {
     }
   }
 
+  const [profileFile, setProfileFile] = useState(null);
+  const [profilePreview, setProfilePreview] = useState(null);
+
+  const handleProfileFileChange = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) {
+      setError("File must be smaller than 5MB");
+      return;
+    }
+    setProfileFile(f);
+    setProfilePreview(URL.createObjectURL(f));
+    setError("");
+  };
+
+  async function handleProfileSetup(e) {
+    e?.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      if (profileFile) {
+        const result = await api.uploadProfilePhoto(profileFile);
+        await auth.updateProfileAttributes(undefined, result.publicUrl);
+        await refresh();
+      }
+      navigate("/app");
+    } catch (err) {
+      setError(err.message || "Failed to upload profile photo");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="auth">
       <div className="auth__panel">
         <Link to="/" className="auth__logo">
-          <span className="nav__logo-mark" aria-hidden="true" />
-          {PRODUCT_NAME}
+          <TaskflowLogo className="nav__logo-mark" aria-hidden="true" />
+          <span className="auth__logo-text">{PRODUCT_NAME}</span>
         </Link>
 
         {mode === "signin" && (
@@ -176,7 +212,7 @@ export default function LoginPage() {
         {mode === "signup" && (
           <>
             <h1>Create your account</h1>
-            <p className="auth__sub">Free for one workspace - no card required.</p>
+            {/* <p className="auth__sub">Free for one workspace - no card required.</p> */}
 
             <form className="auth__form" onSubmit={handleSignUp}>
               <Field label="Name" required value={form.name} onChange={set("name")} autoComplete="name" />
@@ -279,6 +315,67 @@ export default function LoginPage() {
             </p>
           </>
         )}
+
+        {mode === "setup_profile" && (
+          <>
+            <h1>Add a profile photo</h1>
+            <p className="auth__sub">Help your team recognize you.</p>
+            {info && <p className="auth__info">{info}</p>}
+
+            <form className="auth__form" onSubmit={handleProfileSetup}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '24px 0' }}>
+                <div 
+                  style={{ 
+                    width: '120px', 
+                    height: '120px', 
+                    borderRadius: '50%', 
+                    background: 'var(--ink-700)',
+                    backgroundImage: profilePreview ? `url(${profilePreview})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '16px',
+                    border: '2px dashed var(--color-border)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {!profilePreview && <UploadCloud size={32} color="var(--text-500)" />}
+                  <label style={{ 
+                    position: 'absolute', inset: 0, cursor: 'pointer', display: 'flex', 
+                    alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)',
+                    opacity: 0, transition: 'opacity 0.2s' 
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                  >
+                    <UploadCloud size={24} color="#fff" />
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleProfileFileChange} />
+                  </label>
+                </div>
+                <span style={{ fontSize: '13px', color: 'var(--text-500)' }}>Click to upload (Max 5MB)</span>
+              </div>
+
+              {error && <p className="auth__error">{error}</p>}
+              
+              <button className="btn btn--accent btn--block" type="submit" disabled={busy}>
+                {busy ? "Saving..." : "Save Profile"}
+              </button>
+              
+              <button 
+                type="button" 
+                className="btn btn--outline btn--block" 
+                style={{ marginTop: '12px' }}
+                onClick={() => navigate("/app")}
+                disabled={busy}
+              >
+                Skip for now
+              </button>
+            </form>
+          </>
+        )}
       </div>
 
       <div className="auth__side" aria-hidden="true">
@@ -301,15 +398,15 @@ function Field({ label, hint, type, ...props }) {
     <label className="field">
       <span>{label}</span>
       <div style={{ position: 'relative' }}>
-        <input 
-          type={inputType} 
-          {...props} 
-          style={{ 
-            ...props.style, 
-            paddingRight: isPassword ? '40px' : undefined, 
-            width: '100%', 
-            boxSizing: 'border-box' 
-          }} 
+        <input
+          type={inputType}
+          {...props}
+          style={{
+            ...props.style,
+            paddingRight: isPassword ? '40px' : undefined,
+            width: '100%',
+            boxSizing: 'border-box'
+          }}
         />
         {isPassword && (
           <button

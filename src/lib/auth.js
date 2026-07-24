@@ -60,10 +60,19 @@ export async function signOut() {
 
 export async function getCurrentUser() {
   try {
-    return await amplifyGetCurrentUser();
+    const user = await amplifyGetCurrentUser();
+    const attrs = await fetchUserAttributes();
+    return { ...user, name: attrs.name, picture: attrs.picture, attributes: attrs };
   } catch {
     return null;
   }
+}
+
+export async function updateProfileAttributes(name, picture) {
+  const userAttributes = {};
+  if (name !== undefined) userAttributes.name = name;
+  if (picture !== undefined) userAttributes.picture = picture;
+  return updateUserAttributes({ userAttributes });
 }
 
 export async function getToken() {

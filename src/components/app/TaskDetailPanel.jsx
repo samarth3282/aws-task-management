@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { X, Trash2, Send } from "lucide-react";
 import * as api from "../../lib/api";
 import { useToast } from "../../hooks/useToast.jsx";
 import { useAuth } from "../../hooks/useAuth.jsx";
+import { useWorkspace } from "../../hooks/useWorkspace.jsx";
 import { useLiquidGlass } from "../../hooks/useLiquidGlass.jsx";
 import { Skeleton } from "../ui/Skeleton.jsx";
 import ConfirmDialog from "./ConfirmDialog.jsx";
@@ -18,6 +19,8 @@ const STATUSES = [
 export default function TaskDetailPanel({ task, workspaceId, members, onClose, onUpdated, onDeleted }) {
   const { notify } = useToast();
   const { user } = useAuth();
+  const { active } = useWorkspace();
+  const isOwner = active?.ownerId === (user?.userId || user?.username);
   const panelRef = useRef(null);
   useLiquidGlass(panelRef, !!task, { scale: -90, border: 0.05, blur: 12 });
   const [draft, setDraft] = useState(task);
@@ -92,6 +95,7 @@ export default function TaskDetailPanel({ task, workspaceId, members, onClose, o
           commentId,
           createdAt,
           text: commentText.trim(),
+          authorId: user?.userId || user?.username,
           authorEmail: user?.signInDetails?.loginId || user?.username || "",
         },
       ]);
@@ -103,17 +107,41 @@ export default function TaskDetailPanel({ task, workspaceId, members, onClose, o
     }
   }
 
+  const [commentToDelete, setCommentToDelete] = useState(null);
+  const [deletingComment, setDeletingComment] = useState(false);
+
+  async function handleDeleteComment() {
+    if (!commentToDelete) return;
+    setDeletingComment(true);
+    try {
+      await api.deleteComment(workspaceId, task.taskId, commentToDelete);
+      setComments((c) => c.map(comment => 
+        comment.commentId === commentToDelete 
+          ? { ...comment, text: "[This comment was deleted]", deleted: true } 
+          : comment
+      ));
+      notify("Comment deleted.", "success");
+      setCommentToDelete(null);
+    } catch (err) {
+      notify(err.message || "Couldn't delete comment.", "error");
+    } finally {
+      setDeletingComment(false);
+    }
+  }
+
   return (
     <>
-      <div className="panel-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-        <aside ref={panelRef} className="panel liquid-glass-surface" role="dialog" aria-modal="true" aria-label="Task detail">
+      <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <aside ref={panelRef} className="modal liquid-glass-surface" style={{ maxWidth: 550, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }} role="dialog" aria-modal="true" aria-label="Task detail">
           <div className="panel__head">
             <span className="panel__ref">{shortId(task.taskId)}</span>
             <div className="panel__head-actions">
-              <button type="button" className="modal__close" onClick={() => setConfirmDelete(true)} aria-label="Delete task">
-                <Trash2 size={17} />
-              </button>
-              <button type="button" className="modal__close" onClick={onClose} aria-label="Close">
+              {isOwner && (
+                <button type="button" className="modal__close" onClick={() => setConfirmDelete(true)} aria-label="Delete task">
+                  <Trash2 size={17} />
+                </button>
+              )}
+              <button type="button" className="modal__close" onClick={onClose} aria-label="Close panel">
                 <X size={18} />
               </button>
             </div>
@@ -202,17 +230,42 @@ export default function TaskDetailPanel({ task, workspaceId, members, onClose, o
             {!loadingComments && comments.length === 0 && <p className="panel__muted">No comments yet.</p>}
 
             <div className="panel__comments">
-              {comments.map((c) => (
-                <div key={c.commentId} className="panel__comment">
-                  <span className="task-card__avatar">{initials(c.authorEmail || c.authorId)}</span>
-                  <div>
-                    <p className="panel__comment-head">
-                      {c.authorEmail || "Teammate"} <time>{formatDate(c.createdAt)}</time>
-                    </p>
-                    <p className="panel__comment-body">{c.text}</p>
+              {comments.map((c) => {
+                const currentUserId = user?.signInDetails?.loginId || user?.username;
+                const isAuthor = currentUserId === c.authorId || currentUserId === c.authorEmail;
+                const canDelete = !c.deleted && c.text !== "[This comment was deleted]" && (isOwner || isAuthor);
+                const isDeleted = c.deleted || c.text === "[This comment was deleted]";
+                
+                return (
+                  <div key={c.commentId} className="panel__comment" style={{ opacity: isDeleted ? 0.6 : 1 }}>
+                    <span className="task-card__avatar">{initials(c.authorEmail || c.authorId)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="panel__comment-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <p style={{ margin: 0 }}>
+                          {c.authorEmail || "Teammate"} <time>{formatDate(c.createdAt)}</time>
+                        </p>
+                        {canDelete && (
+                          <button 
+                            type="button" 
+                            className="modal__close" 
+                            style={{ padding: 4, transform: 'scale(0.85)' }}
+                            onClick={() => setCommentToDelete(c.commentId)}
+                            title="Delete comment"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                      <p className="panel__comment-body" style={{ 
+                        fontStyle: isDeleted ? 'italic' : 'normal',
+                        color: isDeleted ? 'var(--text-500)' : 'inherit'
+                      }}>
+                        {c.text}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <form className="panel__comment-form" onSubmit={handlePostComment}>
@@ -236,6 +289,17 @@ export default function TaskDetailPanel({ task, workspaceId, members, onClose, o
         title="Delete this task?"
         body={`"${task.title}" and its comments will be gone for good.`}
         busy={deleting}
+        requireMatch="delete"
+      />
+
+      <ConfirmDialog
+        open={!!commentToDelete}
+        onClose={() => setCommentToDelete(null)}
+        onConfirm={handleDeleteComment}
+        title="Delete this comment?"
+        body="This will permanently delete your comment from the thread. This action cannot be undone."
+        busy={deletingComment}
+        confirmLabel="Delete Comment"
       />
     </>
   );

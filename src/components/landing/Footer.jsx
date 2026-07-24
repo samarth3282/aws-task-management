@@ -1,11 +1,12 @@
 import { PRODUCT_NAME } from "../../config";
+import TaskflowLogo from "../ui/TaskflowLogo.jsx";
 
 export default function Footer() {
   return (
     <footer className="footer">
       <div className="container footer__inner">
         <div className="footer__brand">
-          <span className="nav__logo-mark" aria-hidden="true" />
+          <TaskflowLogo className="nav__logo-mark" aria-hidden="true" />
           <span>{PRODUCT_NAME}</span>
         </div>
 

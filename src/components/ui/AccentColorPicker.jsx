@@ -157,7 +157,7 @@ const AccentColorPicker = () => {
           position: 'absolute',
           top: 0,
           left: 0,
-          zIndex: 9999,
+          zIndex: 400,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

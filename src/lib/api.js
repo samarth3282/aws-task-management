@@ -79,9 +79,15 @@ export const createComment = (workspaceId, taskId, text) =>
     body: { text },
   });
 
+export const deleteComment = (workspaceId, taskId, commentId) =>
+  request(`/workspaces/${workspaceId}/tasks/${taskId}/comments/${encodeURIComponent(commentId)}`, { method: "DELETE" });
+
 // ---- Members ----
 export const getWorkspaceMembers = (workspaceId) =>
   request(`/workspaces/${workspaceId}/members`).then((d) => d.members || []);
+
+export const getWorkspaceProfiles = (workspaceId) =>
+  request(`/workspaces/${workspaceId}/profiles`).then((d) => d.profiles || {});
 
 export const inviteMember = (workspaceId, email) =>
   request(`/workspaces/${workspaceId}/members`, { method: "POST", body: { email } });
@@ -93,19 +99,72 @@ export const getWorkspaceFiles = (workspaceId) =>
 export const getSignedUploadUrl = (workspaceId, fileName, fileType, fileSize) =>
   request(`/upload`, { method: "POST", body: { workspaceId, fileName, fileType, fileSize } });
 
+export const getProfileUploadUrl = (fileName, fileType, fileSize) =>
+  request(`/upload-profile`, { method: "POST", body: { fileName, fileType, fileSize } });
+
 export async function uploadFile(workspaceId, file) {
   if (file.size > 25 * 1024 * 1024) {
     throw new Error("File size exceeds the 25MB limit.");
   }
   const { uploadUrl, key } = await getSignedUploadUrl(workspaceId, file.name, file.type, file.size);
-  await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+
+  if (!res.ok) throw new Error("Failed to upload file to S3");
   return key;
+}
+
+export async function uploadProfilePhoto(file) {
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("File size exceeds the 5MB limit.");
+  }
+  const { uploadUrl, publicUrl, key } = await getProfileUploadUrl(file.name, file.type, file.size);
+
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+
+  if (!res.ok) throw new Error("Failed to upload profile photo to S3");
+  return { publicUrl, key };
 }
 
 export const respondToInvite = (workspaceId, action) =>
   request(`/workspaces/${workspaceId}/respond-invite`, {
     method: "POST",
     body: { action },
+  });
+
+export const requestLeaveWorkspace = (workspaceId) =>
+  request(`/workspaces/${workspaceId}/leave-request`, {
+    method: "POST",
+  });
+
+export const respondToLeaveRequest = (workspaceId, userId, action) =>
+  request(`/workspaces/${workspaceId}/respond-leave`, {
+    method: "POST",
+    body: { userId, action },
+  });
+
+export const deleteWorkspaceFile = (workspaceId, fileKey) =>
+  request(`/workspaces/${workspaceId}/files`, {
+    method: "DELETE",
+    body: { key: fileKey },
+  });
+
+export const removeWorkspaceMember = (workspaceId, userId) =>
+  request(`/workspaces/${workspaceId}/members/${userId}`, {
+    method: "DELETE",
+  });
+
+export const deleteWorkspace = (workspaceId) =>
+  request(`/workspaces/${workspaceId}`, {
+    method: "DELETE",
   });
 
 export { ApiError };

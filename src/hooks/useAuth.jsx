@@ -1,12 +1,14 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { getCurrentUser, signOut as authSignOut, verifySession } from "../lib/auth";
 import { withViewTransition } from "../lib/transition.js";
+import Modal from "../components/app/Modal.jsx";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
+  const [sessionInvalidated, setSessionInvalidated] = useState(false);
 
   const refresh = useCallback(async () => {
     setChecking(true);
@@ -18,7 +20,7 @@ export function AuthProvider({ children }) {
         await authSignOut();
         setUser(null);
         withViewTransition(() => setChecking(false));
-        alert("You have been signed out because you logged in on another device.");
+        setSessionInvalidated(true);
         return null;
       }
     }
@@ -38,7 +40,7 @@ export function AuthProvider({ children }) {
     if (!isValid) {
       await authSignOut();
       setUser(null);
-      alert("You have been signed out because you logged in on another device.");
+      setSessionInvalidated(true);
     }
   }, [user]);
 
@@ -73,6 +75,14 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{ user, checking, refresh, signOut }}>
       {children}
+      <Modal open={sessionInvalidated} onClose={() => setSessionInvalidated(false)} title="Session Expired" width={380}>
+        <p className="confirm__body">You have been signed out because you logged in on another device.</p>
+        <div className="confirm__actions" style={{ marginTop: '24px' }}>
+          <button type="button" className="btn btn--outline" onClick={() => setSessionInvalidated(false)} style={{ width: '100%' }}>
+            Okay
+          </button>
+        </div>
+      </Modal>
     </AuthContext.Provider>
   );
 }

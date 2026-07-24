@@ -38,7 +38,7 @@ export default function InviteMemberModal({ open, onClose, workspaceId, onInvite
             autoFocus
             required
           />
-          <small>They need an existing TaskFlow account - InviteMember looks them up in Cognito.</small>
+          <small>They need an existing TaskFlow account</small>
         </label>
         <button className="btn btn--amber btn--block" type="submit" disabled={busy}>
           {busy ? "Sending..." : "Send invite"}

@@ -19,6 +19,7 @@ export function WorkspaceProvider({ children }) {
       const list = await api.listWorkspaces();
       setWorkspaces(list);
 
+      const remembered = window.localStorage.getItem(LAST_WORKSPACE_KEY);
       const acceptedList = list.filter((w) => w.status !== "PENDING");
       const stillExists = acceptedList.some((w) => w.workspaceId === remembered);
 

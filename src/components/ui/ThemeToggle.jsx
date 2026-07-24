@@ -7,7 +7,7 @@ export default function ThemeToggle() {
   return (
     <button
       className="btn btn--icon"
-      style={{ borderRadius: '50%', padding: 10, background: 'var(--ink-900, rgba(0,0,0,0.85))', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px', minHeight: 0, minWidth: 0, padding: 0, borderRadius: '50%', background: 'var(--ink-900, rgba(0,0,0,0.85))', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)', color: 'var(--text-100)' }}
       onClick={(e) => {
         let x = e.clientX;
         let y = e.clientY;
