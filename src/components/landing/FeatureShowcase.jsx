@@ -1,3 +1,5 @@
+import React, { useState } from "react";
+import { Trash2 } from "lucide-react";
 import Reveal from "./Reveal.jsx";
 import { useMacWindow } from "../../hooks/useMacWindow";
 import TaskflowLogo from "../ui/TaskflowLogo.jsx";
@@ -104,28 +106,105 @@ export default function FeatureShowcase() {
 
 function BoardMockup() {
   const { domRef, isMinimized, isMaximized, handleMinimize, handleMaximize } = useMacWindow('board-mockup', { targetSelector: '#board-mockup-dock-icon' });
-  const cols = [
-    { label: "To do", accent: "var(--slate-400)", cards: ["Spec the invite-by-email flow", "Draft empty-state copy"] },
-    { label: "In progress", accent: "var(--amber-400)", cards: ["Kanban drag-and-drop"] },
-    { label: "Done", accent: "var(--teal-400)", cards: ["Cognito JWT authorizer", "Pre-signed S3 uploads"] },
-  ];
+  const [cols, setCols] = useState([
+    { label: "To do", accent: "var(--slate-400)", cards: [{ id: "c1", text: "Spec the invite-by-email flow" }, { id: "c2", text: "Draft empty-state copy" }] },
+    { label: "In progress", accent: "var(--amber-400)", cards: [{ id: "c3", text: "Kanban drag-and-drop" }] },
+    { label: "Done", accent: "var(--teal-400)", cards: [{ id: "c4", text: "Cognito JWT authorizer" }, { id: "c5", text: "Pre-signed S3 uploads" }] },
+  ]);
+  const [addingToCol, setAddingToCol] = useState(null);
+  const [newTaskText, setNewTaskText] = useState("");
+  const [draggedCard, setDraggedCard] = useState(null);
+
+  const handleDragStart = (e, card, sourceColIndex) => {
+    setDraggedCard({ card, sourceColIndex });
+    // e.dataTransfer.effectAllowed = "move";
+    // We can set a blank drag image to just use default browser ghost
+  };
+
+  const handleDrop = (e, targetColIndex) => {
+    e.preventDefault();
+    if (!draggedCard) return;
+    const { card, sourceColIndex } = draggedCard;
+    if (sourceColIndex === targetColIndex) return;
+
+    setCols((prev) => {
+      const next = [...prev];
+      // clone arrays
+      next[sourceColIndex] = { ...next[sourceColIndex], cards: [...next[sourceColIndex].cards] };
+      next[targetColIndex] = { ...next[targetColIndex], cards: [...next[targetColIndex].cards] };
+
+      next[sourceColIndex].cards = next[sourceColIndex].cards.filter(c => c.id !== card.id);
+      next[targetColIndex].cards.push(card);
+      return next;
+    });
+    setDraggedCard(null);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault(); // Necessary to allow dropping
+  };
+
+  const handleAddTask = (e, colIndex) => {
+    e.preventDefault();
+    if (!newTaskText.trim()) {
+      setAddingToCol(null);
+      return;
+    }
+    setCols((prev) => {
+      const next = [...prev];
+      next[colIndex] = { ...next[colIndex], cards: [...next[colIndex].cards] };
+      next[colIndex].cards.push({ id: Date.now().toString(), text: newTaskText });
+      return next;
+    });
+    setNewTaskText("");
+    setAddingToCol(null);
+  };
+
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       <div ref={domRef} className={`mockup-frame ${isMaximized ? 'is-maximized' : ''}`}>
         <MockupChrome label="board" onMinimize={handleMinimize} />
         <div className="mini-board">
-          {cols.map((c) => (
-            <div key={c.label} className="mini-board__col">
+          {cols.map((c, i) => (
+            <div 
+              key={c.label} 
+              className="mini-board__col"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, i)}
+            >
               <div className="mini-board__col-head">
                 <span style={{ background: c.accent }} />
                 {c.label}
               </div>
               {c.cards.map((card) => (
-                <div key={card} className="mini-board__card" style={{ borderLeftColor: c.accent }}>
-                  {card}
+                <div 
+                  key={card.id} 
+                  className="mini-board__card" 
+                  style={{ borderLeftColor: c.accent, cursor: 'grab' }}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, card, i)}
+                >
+                  {card.text}
                 </div>
               ))}
-              <div className="mini-board__add">+ Add task</div>
+              
+              {addingToCol === i ? (
+                <form onSubmit={(e) => handleAddTask(e, i)}>
+                  <input
+                    type="text"
+                    autoFocus
+                    className="mini-board__input"
+                    placeholder="Task title..."
+                    value={newTaskText}
+                    onChange={(e) => setNewTaskText(e.target.value)}
+                    onBlur={(e) => handleAddTask(e, i)}
+                  />
+                </form>
+              ) : (
+                <div className="mini-board__add" onClick={() => setAddingToCol(i)} style={{ cursor: 'pointer' }}>
+                  + Add task
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -137,6 +216,27 @@ function BoardMockup() {
 
 function DetailMockup() {
   const { domRef, isMinimized, isMaximized, handleMinimize, handleMaximize } = useMacWindow('detail-mockup', { targetSelector: '#detail-mockup-dock-icon' });
+  
+  const [comments, setComments] = useState([
+    { id: 1, author: "Samarth", avatar: "SP", time: "2h ago", text: "Went with a mapping table instead of a GSI on the Set attribute." },
+    { id: 2, author: "Riya", avatar: "RK", time: "34m ago", text: "Makes sense - ships the O(1) query either direction." }
+  ]);
+  const [newComment, setNewComment] = useState("");
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && newComment.trim()) {
+      e.preventDefault();
+      setComments([...comments, {
+        id: Date.now(),
+        author: "You",
+        avatar: "U",
+        time: "Just now",
+        text: newComment
+      }]);
+      setNewComment("");
+    }
+  };
+
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       <div ref={domRef} className={`mockup-frame ${isMaximized ? 'is-maximized' : ''}`}>
@@ -150,21 +250,36 @@ function DetailMockup() {
           <h4>Threaded task comments</h4>
           <p>Add a Comments table keyed by TaskID, sorted oldest-to-newest by an ISO-prefixed sort key.</p>
           <div className="mini-detail__divider" />
-          <div className="mini-detail__comment">
-            <span className="mini-detail__avatar mini-detail__avatar--sm">SP</span>
-            <div>
-              <p className="mini-detail__comment-head">Samarth <time>2h ago</time></p>
-              <p className="mini-detail__comment-body">Went with a mapping table instead of a GSI on the Set attribute.</p>
+          
+          {comments.map(c => (
+            <div key={c.id} className="mini-detail__comment">
+              <span className="mini-detail__avatar mini-detail__avatar--sm">{c.avatar}</span>
+              <div style={{ width: '100%' }}>
+                <p className="mini-detail__comment-head">
+                  {c.author} <time>{c.time}</time>
+                  {c.author === "You" && (
+                    <span 
+                      style={{ float: 'right', cursor: 'pointer', color: 'var(--slate-400)', display: 'flex', alignItems: 'center' }}
+                      onClick={() => setComments(comments.filter(comment => comment.id !== c.id))}
+                      title="Delete comment"
+                    >
+                      <Trash2 size={12} />
+                    </span>
+                  )}
+                </p>
+                <p className="mini-detail__comment-body">{c.text}</p>
+              </div>
             </div>
-          </div>
-          <div className="mini-detail__comment">
-            <span className="mini-detail__avatar mini-detail__avatar--sm">RK</span>
-            <div>
-              <p className="mini-detail__comment-head">Riya <time>34m ago</time></p>
-              <p className="mini-detail__comment-body">Makes sense - ships the O(1) query either direction.</p>
-            </div>
-          </div>
-          <div className="mini-detail__input">Write a comment...</div>
+          ))}
+
+          <input 
+            type="text" 
+            className="mini-detail__input" 
+            placeholder="Write a comment..." 
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
         </div>
       </div>
       <MockupDockIcon id="detail-mockup-dock-icon" windowId="detail-mockup" isMinimized={isMinimized} />

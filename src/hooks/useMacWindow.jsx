@@ -144,7 +144,7 @@ export function useMacWindow(id = 'default', options = {}) {
 
     const dockCenter = { x: dockRect.left + dockRect.width / 2, y: dockRect.top + dockRect.height / 2 };
     
-    const rect = rectRef.current;
+    const rect = domRef.current ? domRef.current.getBoundingClientRect() : rectRef.current;
     const winProps = { x: rect.left, y: rect.top, w: rect.width, h: rect.height };
 
     let start = null;

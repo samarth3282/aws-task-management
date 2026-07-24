@@ -759,6 +759,7 @@
   font-size: 11.5px;
   line-height: 1.35;
   margin-bottom: 8px;
+  user-select: none;
 }
 
 .mini-board__add {
@@ -766,6 +767,24 @@
   font-size: 10.5px;
   color: var(--text-700);
   padding: 6px 2px;
+}
+
+.mini-board__input {
+  width: 100%;
+  background: var(--paper-100);
+  font-family: inherit;
+  color: var(--paper-text-900);
+  border: 1px solid var(--accent-primary);
+  border-left: 3px solid var(--accent-primary);
+  border-radius: 8px;
+  padding: 8px 9px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  margin-bottom: 8px;
+  outline: none;
+}
+.mini-board__input::placeholder {
+  color: var(--text-700);
 }
 
 /* mini task detail */
@@ -866,12 +885,22 @@
 }
 
 .mini-detail__input {
+  width: 100%;
+  background: transparent;
+  font-family: inherit;
   font-size: 12.5px;
-  color: var(--text-700);
+  color: var(--text-100);
   border: 1px solid var(--ink-800);
   border-radius: 10px;
   padding: 10px 14px;
   margin-top: 6px;
+  outline: none;
+}
+.mini-detail__input::placeholder {
+  color: var(--text-700);
+}
+.mini-detail__input:focus {
+  border-color: var(--accent-primary);
 }
 
 /* mini analytics */

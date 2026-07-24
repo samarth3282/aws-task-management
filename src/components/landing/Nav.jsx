@@ -28,13 +28,13 @@ export default function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useLiquidGlass(navInnerRef, scrolled, { scale: -112, border: 0, blur: 3, saturate: 1.5 });
+  useLiquidGlass(navInnerRef, scrolled, { scale: -80, border: 0, blur: 3, saturate: 1.5 });
 
   return (
     <header className={`nav ${scrolled ? "is-scrolled" : ""}`}>
       <div ref={navInnerRef} className={`nav__inner ${scrolled ? "liquid-glass-surface" : ""}`}>
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="nav__logo"
           onClick={(e) => {
             if (window.__minimizedWindow) {
